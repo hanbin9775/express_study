@@ -1,5 +1,9 @@
 # express_study
-this repository is for personal express study
+익스프레스 공부와 정리.
+
+참고 및 출처 : 
+[https://expressjs.com/en/4x/api.html],
+[https://velopert.com]
 
 
 # Express-Generator
@@ -25,8 +29,14 @@ METHOD는 HTTP 요청 메서드<br>
 PATH 는 요청 경로<br>
 HANDLER는 라우트가 일치할 때 실행하는 함수
 
-# 정적 파일
+# 정적 파일 사용
 
+```
+// 해당 함수 혹은 미들웨어 함수를 path에 mount. 요청 경로가 path와 일치한다면 함수가 실행된다. path의 디폴트는 '/'
+app.use([path,] callback [, callback...])
+```
+
+example
 ```
 //디렉토리 public에 포함된 정적파일들 로드 가능
 app.use(express.static('public'));
@@ -45,4 +55,115 @@ app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 // html 형식으로 변환
 app.engine('html', require('ejs').renderFile);
+```
+
+# RESTful Api
+
+database : data 폴더 안의 json 형식의 파일로 사용
+
+GET method 
+
+```
+app.get(path, callback [, callback ...])
+```
+
+example
+```
+app.get('/getUser/:username', function(req,res){
+        //data 폴더 안의 user.json 파일에서 가져온 값
+        fs.readFile(__dirname + "/../data/user.json", 'utf8', function(err, data){
+            var users = JSON.parse(data);
+            //req.params 프로퍼티는 라우트 path (/getUser/:username)의 username 으로 들어온 값이다.
+            res.json(users[req.params.username]);
+        });
+    })
+```
+
+POST method
+
+```
+app.post(path, callback [, callback ...])
+```
+
+example
+```
+    app.post('/addUser/:username', function(req, res){
+
+        // 응답 결과
+        var result = {  };
+        var username = req.params.username;
+
+        // 패스워드와 이름이 틀리다면
+        if(!req.body["password"] || !req.body["name"]){
+            result["success"] = 0;
+            result["error"] = "invalid request";
+            res.json(result);
+            return;
+        }
+
+        fs.readFile( __dirname + "/../data/user.json", 'utf8',  function(err, data){
+            var users = JSON.parse(data);
+            //이미 같은 이름이 있다면
+            if(users[username]){
+                result["success"] = 0;
+                result["error"] = "duplicate";
+                res.json(result);
+                return;
+            }
+
+            // ADD TO DATA
+            users[username] = req.body;
+
+            // SAVE DATA
+            fs.writeFile(__dirname + "/../data/user.json",
+                         JSON.stringify(users, null, '\t'), "utf8", function(err, data){
+                result = {"success": 1};
+                res.json(result);
+            })
+        })
+    });
+```
+
+PUT method
+
+*post와의 차이점 : put method는 식별자가 같은 자원이 있을 경우 대체한다.
+
+```
+app.put(path, callback [, callback ...])
+```
+
+DELETE method
+
+```
+app.delete(path, callback [, callback ...])
+```
+
+example
+```
+app.delete('/deleteUser/:username', function(req, res){
+        var result = { };
+        //LOAD DATA
+        fs.readFile(__dirname + "/../data/user.json", "utf8", function(err, data){
+            var users = JSON.parse(data);
+
+            // IF NOT FOUND
+            if(!users[req.params.username]){
+                result["success"] = 0;
+                result["error"] = "not found";
+                res.json(result);
+                return;
+            }
+
+            // DELETE FROM DATA
+            delete users[req.params.username];
+
+            // SAVE FILE
+            fs.writeFile(__dirname + "/../data/user.json",
+                         JSON.stringify(users, null, '\t'), "utf8", function(err, data){
+                result["success"] = 1;
+                res.json(result);
+                return;
+            })
+        })
+})
 ```
